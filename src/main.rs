@@ -28,7 +28,7 @@ lazy_static! {
 }
 
 const IMAGE_LOCK_DURATION: u64 = 60*30;
-const WORLD_LOCK_DURATION: u64 = 1;
+const WORLD_LOCK_DURATION: u64 = 60*24*7;
 
 #[catch(500)]
 fn internal_error() -> &'static str {
