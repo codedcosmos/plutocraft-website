@@ -1,0 +1,7 @@
+/target
+Cargo.lock
+/.idea
+pretend/
+backups/
+working/
+out.log
