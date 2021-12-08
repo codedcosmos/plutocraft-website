@@ -25,8 +25,8 @@ use rocket::error::ErrorKind::Config;
 use crate::image_regenerator::regenerate_image;
 
 lazy_static! {
-    static ref IMAGE_LOCK: Mutex<SystemTime> = Mutex::new(SystemTime::now());
-    static ref WORLD_LOCK: Mutex<SystemTime> = Mutex::new(SystemTime::now());
+    static ref IMAGE_LOCK: Mutex<(SystemTime, bool)> = Mutex::new((SystemTime::now(), false));
+    static ref WORLD_LOCK: Mutex<(SystemTime, bool)> = Mutex::new((SystemTime::now(), false));
 }
 
 const IMAGE_LOCK_DURATION_TEXT: &str = "30 minutes";
@@ -44,6 +44,8 @@ fn internal_error() -> &'static str {
 fn not_found(req: &Request) -> String {
     if req.uri().to_string().ends_with("world.zip") {
         format!("World zip not available just yet, try again in a few minutes")
+    } else if req.uri().to_string().ends_with("world-map.png") {
+        format!("World image not available just yet, try again in a few minutes")
     } else {
         format!("404 '{}' not found!", req.uri())
     }
@@ -60,9 +62,9 @@ pub async fn world_map() -> Option<NamedFile> {
     if let Ok(mut image_lock) = IMAGE_LOCK.lock() {
         // See if n time has passed
 
-        if let Ok(duration) = image_lock.elapsed() {
-            if duration.as_secs() >= IMAGE_LOCK_DURATION {
-                *image_lock = SystemTime::now();
+        if let Ok((duration, unlocked)) = image_lock.elapsed() {
+            if duration.as_secs() >= IMAGE_LOCK_DURATION || !unlocked {
+                *image_lock = (SystemTime::now(), true);
                 regenerate_image();
             }
         }
@@ -79,9 +81,9 @@ pub async fn world_download() -> Option<NamedFile> {
     if let Ok(mut world_lock) = WORLD_LOCK.lock() {
         // See if n time has passed
 
-        if let Ok(duration) = world_lock.elapsed() {
-            if duration.as_secs() >= WORLD_LOCK_DURATION {
-                *world_lock = SystemTime::now();
+        if let Ok((duration, unlocked)) = world_lock.elapsed() {
+            if duration.as_secs() >= WORLD_LOCK_DURATION || !unlocked {
+                *world_lock = (SystemTime::now(), true);
                 world_zipper::rezip_world();
             }
         }
