@@ -20,13 +20,42 @@ use rocket::http::Status;
 use rocket::response::content;
 use rocket::response::content::{Css, Html};
 use std::sync::Mutex;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime, SystemTimeError};
 use rocket::error::ErrorKind::Config;
 use crate::image_regenerator::regenerate_image;
 
+struct Lock {
+    time: SystemTime,
+    used: bool,
+}
+
+impl Lock {
+    fn new() -> Self {
+        Lock {
+            time: SystemTime::now(),
+            used: false,
+        }
+    }
+
+    fn reset() -> Self {
+        Lock {
+            time: SystemTime::now(),
+            used: true,
+        }
+    }
+
+    fn elapsed(&self) -> Result<Duration, SystemTimeError> {
+        self.time.elapsed()
+    }
+
+    fn is_used(&self) -> bool {
+        self.used
+    }
+}
+
 lazy_static! {
-    static ref IMAGE_LOCK: Mutex<(SystemTime, bool)> = Mutex::new((SystemTime::now(), false));
-    static ref WORLD_LOCK: Mutex<(SystemTime, bool)> = Mutex::new((SystemTime::now(), false));
+    static ref IMAGE_LOCK: Mutex<Lock> = Mutex::new(Lock::new());
+    static ref WORLD_LOCK: Mutex<Lock> = Mutex::new(Lock::new());
 }
 
 const IMAGE_LOCK_DURATION_TEXT: &str = "30 minutes";
@@ -61,12 +90,11 @@ pub async fn world_map() -> Option<NamedFile> {
     log!("Requested world map");
     if let Ok(mut image_lock) = IMAGE_LOCK.lock() {
         // See if n time has passed
-        let (mut time, mut unlocked) = *image_lock;
 
-        if let Ok(duration) = time.elapsed() {
-            if duration.as_secs() >= IMAGE_LOCK_DURATION || !unlocked {
-                time = SystemTime::now();
-                unlocked = true;
+        if let Ok(duration) = image_lock.elapsed() {
+            println!("{} {}", duration.as_secs(), !image_lock.is_used());
+            if duration.as_secs() >= IMAGE_LOCK_DURATION || !image_lock.is_used() {
+                *image_lock = Lock::reset();
                 regenerate_image();
             }
         }
@@ -82,12 +110,11 @@ pub async fn world_download() -> Option<NamedFile> {
     log!("Requested world download");
     if let Ok(mut world_lock) = WORLD_LOCK.lock() {
         // See if n time has passed
-        let (mut time, mut unlocked) = *world_lock;
 
-        if let Ok(duration) = time.elapsed() {
-            if duration.as_secs() >= IMAGE_LOCK_DURATION || !unlocked {
-                time = SystemTime::now();
-                unlocked = true;
+        if let Ok(duration) = world_lock.elapsed() {
+            println!("{} {}", duration.as_secs(), !world_lock.is_used());
+            if duration.as_secs() >= IMAGE_LOCK_DURATION || !world_lock.is_used() {
+                *world_lock = Lock::reset();
                 world_zipper::rezip_world();
             }
         }
