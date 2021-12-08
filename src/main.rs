@@ -10,6 +10,7 @@ extern crate lazy_static;
 use std::alloc::System;
 use std::borrow::BorrowMut;
 use std::fs;
+use std::net::{IpAddr, Ipv4Addr};
 use std::ops::Deref;
 use std::path::Path;
 use lazy_static::lazy_static;
@@ -146,6 +147,7 @@ fn web_css() -> Css<&'static str> {
 fn rocket() -> Rocket<Build> {
     let mut config = rocket::Config::release_default();
     config.cli_colors = false;
+    config.address = IpAddr::V4(Ipv4Addr::new(0,0,0,0));
 
     log!("Launching website");
 
