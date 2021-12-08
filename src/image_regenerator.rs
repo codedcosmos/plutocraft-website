@@ -19,7 +19,8 @@ pub fn regenerate_image() {
 
         if !output.status.success() {
             if let Ok(str) = std::str::from_utf8(&output.stdout.as_slice()) {
-                log!("{}", str);
+                log!("anvil render {} --palette working/palette.tar.gz", world_path);
+                log!("Zip log output: {}", str);
             }
         }
 
