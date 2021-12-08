@@ -61,10 +61,12 @@ pub async fn world_map() -> Option<NamedFile> {
     log!("Requested world map");
     if let Ok(mut image_lock) = IMAGE_LOCK.lock() {
         // See if n time has passed
+        let (mut time, mut unlocked) = *image_lock;
 
-        if let Ok((duration, unlocked)) = image_lock.elapsed() {
+        if let Ok(duration) = time.elapsed() {
             if duration.as_secs() >= IMAGE_LOCK_DURATION || !unlocked {
-                *image_lock = (SystemTime::now(), true);
+                time = SystemTime::now();
+                unlocked = true;
                 regenerate_image();
             }
         }
@@ -80,10 +82,12 @@ pub async fn world_download() -> Option<NamedFile> {
     log!("Requested world download");
     if let Ok(mut world_lock) = WORLD_LOCK.lock() {
         // See if n time has passed
+        let (mut time, mut unlocked) = *world_lock;
 
-        if let Ok((duration, unlocked)) = world_lock.elapsed() {
-            if duration.as_secs() >= WORLD_LOCK_DURATION || !unlocked {
-                *world_lock = (SystemTime::now(), true);
+        if let Ok(duration) = time.elapsed() {
+            if duration.as_secs() >= IMAGE_LOCK_DURATION || !unlocked {
+                time = SystemTime::now();
+                unlocked = true;
                 world_zipper::rezip_world();
             }
         }
