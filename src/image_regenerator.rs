@@ -23,7 +23,5 @@ pub fn regenerate_image() {
                 log!("Zip log output: {}", str);
             }
         }
-
-        log!("{:?}", output);
     });
 }
