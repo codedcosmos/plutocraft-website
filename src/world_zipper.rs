@@ -1,25 +1,27 @@
 use std::fs::OpenOptions;
 use std::process::Command;
 use std::{fs, thread, time};
+use crate::log;
 
 pub fn rezip_world() {
     thread::spawn(|| {
-        info!("Sleeping before backing up world");
+        log!("Sleeping before backing up world");
         thread::sleep(time::Duration::from_millis(100));
 
-        info!("Regenerating image!");
+        log!("Regenerating world map!");
         let zip_name = format!("backups/world-{}.zip", chrono::offset::Local::now().format("%Y-%m-%d-%s"));
+        let world_path = include_str!("../worldpath.txt");
 
         let output = Command::new("zip")
             .arg("-r")
             .arg(zip_name.clone())
-            .arg("pretend/world-2021-12-06/world/")
+            .arg(world_path)
             .output()
             .expect("Failed to build new world image");
 
         if !output.status.success() {
             if let Ok(str) = std::str::from_utf8(&output.stdout.as_slice()) {
-                info!("{}", str);
+                log!("Zip log output: {}", str);
             }
             return;
         }
@@ -31,7 +33,7 @@ pub fn rezip_world() {
                     let path = entry.path();
                     if let Some(string) = path.to_str() {
                         if !string.ends_with(&zip_name) {
-                            println!("Deleting {:?}", path);
+                            log!("Deleting {:?}", path);
                             fs::remove_file(path);
                         }
                     }

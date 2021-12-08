@@ -1,13 +1,17 @@
 use std::fs::OpenOptions;
 use std::process::Command;
 use std::thread;
+use crate::log;
 
 pub fn regenerate_image() {
     thread::spawn(|| {
-        info!("Regenerating image!");
+        log!("Regenerating image!");
+
+        let world_path = include_str!("../worldpath.txt");
+
         let output = Command::new("anvil")
             .arg("render")
-            .arg("pretend/world-2021-12-06/world/")
+            .arg(world_path)
             .arg("--palette")
             .arg("working/palette.tar.gz")
             .output()
@@ -15,10 +19,10 @@ pub fn regenerate_image() {
 
         if !output.status.success() {
             if let Ok(str) = std::str::from_utf8(&output.stdout.as_slice()) {
-                info!("{}", str);
+                log!("{}", str);
             }
         }
 
-        println!("{:?}", output);
+        log!("{:?}", output);
     });
 }

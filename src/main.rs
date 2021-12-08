@@ -1,5 +1,7 @@
 mod image_regenerator;
 mod world_zipper;
+mod log;
+mod random_msg;
 
 #[macro_use]
 extern crate rocket;
@@ -18,7 +20,6 @@ use rocket::response::content;
 use rocket::response::content::{Css, Html};
 use std::sync::Mutex;
 use std::time::SystemTime;
-use log::LevelFilter;
 use rocket::error::ErrorKind::Config;
 use crate::image_regenerator::regenerate_image;
 
@@ -27,8 +28,11 @@ lazy_static! {
     static ref WORLD_LOCK: Mutex<SystemTime> = Mutex::new(SystemTime::now());
 }
 
-const IMAGE_LOCK_DURATION: u64 = 60*30;
-const WORLD_LOCK_DURATION: u64 = 60*24*7;
+const IMAGE_LOCK_DURATION_TEXT: &str = "30 minutes";
+const WORLD_LOCK_DURATION_TEXT: &str = "~7 days";
+
+const IMAGE_LOCK_DURATION: u64 = 1;//60*30;
+const WORLD_LOCK_DURATION: u64 = 1;//60*23*7;
 
 #[catch(500)]
 fn internal_error() -> &'static str {
@@ -51,6 +55,7 @@ fn default(status: Status, req: &Request) -> String {
 
 #[get("/world-map.png")]
 pub async fn world_map() -> Option<NamedFile> {
+    log!("Requested world map");
     if let Ok(mut image_lock) = IMAGE_LOCK.lock() {
         // See if n time has passed
 
@@ -69,6 +74,7 @@ pub async fn world_map() -> Option<NamedFile> {
 
 #[get("/world.zip")]
 pub async fn world_download() -> Option<NamedFile> {
+    log!("Requested world download");
     if let Ok(mut world_lock) = WORLD_LOCK.lock() {
         // See if n time has passed
 
@@ -121,8 +127,14 @@ pub async fn logo_png() -> Option<NamedFile> {
 }
 
 #[get("/")]
-fn index() -> Html<&'static str> {
-    content::Html(include_str!("../web/home.html"))
+fn index() -> Html<String> {
+    let html = include_str!("../web/home.html");
+
+    let html = html.replace("%worldupdate%", WORLD_LOCK_DURATION_TEXT);
+    let html = html.replace("%mapupdate%", IMAGE_LOCK_DURATION_TEXT);
+    let html = html.replace("%randommessage%", random_msg::get_random_message().as_str());
+
+    content::Html(html)
 }
 
 #[get("/web.css")]
@@ -132,10 +144,10 @@ fn web_css() -> Css<&'static str> {
 
 #[launch]
 fn rocket() -> Rocket<Build> {
-    //simple_logging::log_to_file("out.log", LevelFilter::Info);
-
     let mut config = rocket::Config::release_default();
     config.cli_colors = false;
+
+    log!("Launching website");
 
     rocket::build().configure(config)
         .mount("/", routes![world_map, world_download, logo_png, index, web_css])
