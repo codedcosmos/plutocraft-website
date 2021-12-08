@@ -10,7 +10,7 @@ pub fn rezip_world() {
 
         log!("Regenerating world map!");
         let zip_name = format!("backups/world-{}.zip", chrono::offset::Local::now().format("%Y-%m-%d-%s"));
-        let world_path = include_str!("../worldpath.txt");
+        let world_path = include_str!("../worldpath.txt").trim();
 
         let output = Command::new("zip")
             .arg("-r")

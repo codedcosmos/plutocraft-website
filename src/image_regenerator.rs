@@ -7,7 +7,7 @@ pub fn regenerate_image() {
     thread::spawn(|| {
         log!("Regenerating image!");
 
-        let world_path = include_str!("../worldpath.txt");
+        let world_path = include_str!("../worldpath.txt").trim();
 
         let output = Command::new("anvil")
             .arg("render")
