@@ -22,6 +22,8 @@ pub fn regenerate_image() {
                 log!("anvil render {} --palette working/palette.tar.gz", world_path);
                 log!("Zip log output: {}", str);
             }
+        } else {
+            log!("Generated image");
         }
     });
 }

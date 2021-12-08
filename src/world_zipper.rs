@@ -25,6 +25,9 @@ pub fn rezip_world() {
             }
             return;
         }
+        else {
+            log!("Generated world zip");
+        }
 
         // Delete other zips
         if let Ok(directory) = fs::read_dir("backups") {
